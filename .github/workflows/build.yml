@@ -10,9 +10,20 @@ on:
 
 
 jobs:
-  build:
+  prepare:
     runs-on: ubuntu-latest
-    
+    outputs:
+      version: ${{ steps.set-ver.outputs.version }}
+    steps:
+      - id: set-ver
+        run: |
+          echo "version=$(date -d "8 hour" -u +3.%y.%m%d%H)" >> $GITHUB_OUTPUT
+
+  build:
+    needs: prepare
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -62,3 +73,14 @@ jobs:
       with:
         name: apk
         path: ${{ github.workspace }}/V2rayNG/app/build/outputs/apk/debug/
+
+    - name: Release
+      uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844
+      with:
+        name: v2rayNG_app_${{ env.VERSION }}
+        tag_name: ${{ env.VERSION }}
+        draft: false
+        prerelease: false
+        files: ${{ github.workspace }}/V2rayNG/app/build/outputs/apk/debug/*.apk
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
